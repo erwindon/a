@@ -262,7 +262,8 @@ public class A {
 				DEFAULT_WAIT));
 		int j = 0;
 		while (j < count || count == 0) {
-			Message msg = mq.receive(wait);
+			// some message system do not properly handle receive(0)
+			Message msg = wait == 0 ? mq.receive() : mq.receive(wait);
 			if (msg == null) {
 				output("No message received, due to the timeout expiring or the consumer is closed");
 				break;
@@ -423,7 +424,8 @@ public class A {
 				DEFAULT_WAIT));
 		int i = 0;
 		while (i < count || count == 0) {
-			Message msg = mq.receive(wait);
+			// some message system do not properly handle receive(0)
+			Message msg = wait == 0 ? mq.receive() : mq.receive(wait);
 			if (msg == null) {
 				output("No message received");
 				break;
@@ -614,7 +616,8 @@ public class A {
 		List<Message> msgs = new ArrayList<>();
 		int i = 0;
 		while (i < count || count == 0) {
-			Message msg = mq.receive(wait);
+			// some message system do not properly handle receive(0)
+			Message msg = wait == 0 ? mq.receive() : mq.receive(wait);
 			if (msg == null) {
 				break;
 			} else {
