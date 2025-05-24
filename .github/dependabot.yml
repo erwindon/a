@@ -34,3 +34,22 @@ updates:
   - dependency-name: org.springframework:spring-core
     versions:
     - 5.3.5
+  # Ignore these until we move to Jakarta
+  - dependency-name: 'org.apache.activemq:activemq-client'
+    versions:
+    - '>= 6'
+  - dependency-name: 'org.apache.activemq:activemq-openwire-legacy'
+    versions:
+    - '>= 6'
+  - dependency-name: 'org.apache.activemq:activemq-broker'
+    versions:
+    - '>= 6'
+  - dependency-name: 'org.apache.activemq:activemq-kahadb-store'
+    versions:
+    - '>= 6'
+  - dependency-name: 'org.apache.activemq:activemq-spring'
+    versions:
+    - '>= 6'
+  - dependency-name: 'org.apache.activemq:activemq-amqp'
+    versions:
+    - '>= 6'
