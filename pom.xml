@@ -5,7 +5,7 @@
   <version>1.6.1-SNAPSHOT</version>
 
   <properties>
-    <activemq.version>5.19.0</activemq.version>
+    <activemq.version>5.19.7</activemq.version>
     <spring.version>6.2.9</spring.version>
     <deb.lib.dir>/usr/share/${project.artifactId}/lib</deb.lib.dir>
     <deb.bin>/usr/bin/${project.artifactId}</deb.bin>
