@@ -53,3 +53,7 @@ updates:
   - dependency-name: 'org.apache.activemq:activemq-amqp'
     versions:
     - '>= 6'
+  # graalvm changed a lot in 24.x
+  - dependency-name: 'org.graalvm.js:js'
+    versions:
+    - '>= 24'
