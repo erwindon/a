@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
@@ -87,7 +88,7 @@ public class A {
 		}
 		System.out.println("");
 	};
-	
+
 	// Commands
 	public static final String CMD_AMQP = "A";
 	public static final String CMD_ARTEMIS_CORE = "a";
@@ -130,7 +131,7 @@ public class A {
 	public static final String CMD_JMS_TYPE = "y";
 	public static final String CMD_TTL = "z";
 	public static final String CMD_CLIENTID = "k";
-	
+
 	// Various constants
 	public static final long SLEEP_TIME_BETWEEN_FILE_CHECK = 1000L;
 	public static final String DEFAULT_COUNT_GET = "1";
@@ -149,7 +150,9 @@ public class A {
 	public static void main(String[] args) {
 		System.setProperty("polyglot.engine.WarnInterpreterOnly", "false");
 		A a = new A();
-		try { a.run(args); } catch (Exception e) {
+		try {
+			a.run(args);
+		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
@@ -160,8 +163,7 @@ public class A {
 
 		if (args.length == 0) {
 			HelpFormatter helpFormatter = new HelpFormatter();
-			helpFormatter.printHelp(
-					"java -jar a-<version>-with-dependencies.jar", opts, true);
+			helpFormatter.printHelp("java -jar a-<version>-with-dependencies.jar", opts, true);
 			System.exit(0);
 		}
 
@@ -169,7 +171,7 @@ public class A {
 
 		try {
 			cmdLine = cmdParser.parse(opts, args);
-			if( cmdLine.hasOption(CMD_VERSION)){
+			if (cmdLine.hasOption(CMD_VERSION)) {
 				executeShowVersion();
 				return;
 			}
@@ -181,19 +183,15 @@ public class A {
 				protocol = Protocol.ArtemisCore;
 			}
 
-			connect(cmdLine.getOptionValue(CMD_BROKER, "tcp://localhost:61616"),
-					cmdLine.getOptionValue(CMD_USER),
-					cmdLine.getOptionValue(CMD_PASS), protocol,
-					cmdLine.getOptionValue(CMD_JNDI, ""),
-					cmdLine.getOptionValue(CMD_CLIENTID),
-					cmdLine.hasOption(CMD_NO_TRANSACTION_SUPPORT));
+			connect(cmdLine.getOptionValue(CMD_BROKER, "tcp://localhost:61616"), cmdLine.getOptionValue(CMD_USER),
+					cmdLine.getOptionValue(CMD_PASS), protocol, cmdLine.getOptionValue(CMD_JNDI, ""),
+					cmdLine.getOptionValue(CMD_CLIENTID), cmdLine.hasOption(CMD_NO_TRANSACTION_SUPPORT));
 
 			long startTime = System.currentTimeMillis();
 			executeCommandLine(cmdLine);
 			long stopTime = System.currentTimeMillis();
 			long elapsedTime = stopTime - startTime;
-			output("Operation completed in ", Long.toString(elapsedTime),
-					"ms (excluding connect)");
+			output("Operation completed in ", Long.toString(elapsedTime), "ms (excluding connect)");
 		} finally {
 			try {
 				if (sess != null) {
@@ -215,7 +213,8 @@ public class A {
 		logger.debug("At the end of the road");
 	}
 
-	protected void executeCommandLine(CommandLine cmdLine) throws JsonParseException,IOException,JMSException,ScriptException{
+	protected void executeCommandLine(CommandLine cmdLine)
+			throws JsonParseException, IOException, JMSException, ScriptException {
 		if (cmdLine.hasOption(CMD_GET)) {
 			executeGet(cmdLine);
 		} else if (cmdLine.hasOption(CMD_PUT)) {
@@ -234,18 +233,18 @@ public class A {
 			executeReadDump(cmdLine);
 		} /*else if (cmdLine.hasOption(CMD_HTTP_BRIDGE)) {
 			executeStartHttpBridge(cmdLine);
-		} */else {
+			} */else {
 			executeBrowse(cmdLine);
 		}
 	}
 
-	protected void executeMove(CommandLine cmdLine) throws JMSException,
-			UnsupportedEncodingException, ScriptException, IOException {
-		
+	protected void executeMove(CommandLine cmdLine)
+			throws JMSException, UnsupportedEncodingException, ScriptException, IOException {
+
 		// Should be able to support some kind of Move operation even though the session is not transacted.
 		boolean hasTransactionalSession = tsess != null;
 		Session moveSession = hasTransactionalSession ? tsess : sess;
-		
+
 		Queue tq = moveSession.createQueue(cmdLine.getArgs()[0]);
 		Queue q = moveSession.createQueue(cmdLine.getOptionValue(CMD_MOVE_QUEUE)); // Source
 
@@ -256,10 +255,8 @@ public class A {
 		} else {
 			mq = moveSession.createConsumer(q);
 		}
-		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT,
-				DEFAULT_COUNT_ALL));
-		long wait = Long.parseLong(cmdLine.getOptionValue(CMD_WAIT,
-				DEFAULT_WAIT));
+		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT, DEFAULT_COUNT_ALL));
+		long wait = Long.parseLong(cmdLine.getOptionValue(CMD_WAIT, DEFAULT_WAIT));
 		int j = 0;
 		while (j < count || count == 0) {
 			// some message system do not properly handle receive(0)
@@ -269,14 +266,13 @@ public class A {
 				break;
 			} else {
 				sendWithOptionalTransformer(cmdLine, msg, mp);
-				if( hasTransactionalSession ){
+				if (hasTransactionalSession) {
 					moveSession.commit();
 				}
 				++j;
 			}
 		}
-		output(j, " msgs moved from ", cmdLine.getOptionValue(CMD_MOVE_QUEUE),
-				" to ", cmdLine.getArgs()[0]);
+		output(j, " msgs moved from ", cmdLine.getOptionValue(CMD_MOVE_QUEUE), " to ", cmdLine.getArgs()[0]);
 	}
 
 	protected void executeCopy(CommandLine cmdLine) throws JMSException, ScriptException, IOException {
@@ -289,8 +285,7 @@ public class A {
 		} else {
 			qb = sess.createBrowser(q);
 		}
-		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT,
-				DEFAULT_COUNT_ALL));
+		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT, DEFAULT_COUNT_ALL));
 		int i = 0, j = 0;
 		@SuppressWarnings("unchecked")
 		Enumeration<Message> en = qb.getEnumeration();
@@ -302,7 +297,7 @@ public class A {
 				// if search is enabled
 				if (cmdLine.hasOption(CMD_FIND)) {
 					if (msg instanceof TextMessage) {
-						String haystack = ((TextMessage) msg).getText();
+						String haystack = ((TextMessage)msg).getText();
 						String needle = cmdLine.getOptionValue(CMD_FIND);
 						if (haystack != null && haystack.contains(needle)) {
 							sendWithOptionalTransformer(cmdLine, msg, mp);
@@ -316,12 +311,12 @@ public class A {
 				++i;
 			}
 		}
-		output(j, " msgs copied from ", cmdLine.getOptionValue(CMD_COPY_QUEUE),
-				" to ", cmdLine.getArgs()[0]);
+		output(j, " msgs copied from ", cmdLine.getOptionValue(CMD_COPY_QUEUE), " to ", cmdLine.getArgs()[0]);
 	}
 
-	protected void sendWithOptionalTransformer(CommandLine cmdLine, Message msg, MessageProducer mp) throws JMSException, ScriptException, IOException {
-		if( cmdLine.hasOption(CMD_TRANSFORM_SCRIPT) ) {
+	protected void sendWithOptionalTransformer(CommandLine cmdLine, Message msg, MessageProducer mp)
+			throws JMSException, ScriptException, IOException {
+		if (cmdLine.hasOption(CMD_TRANSFORM_SCRIPT)) {
 			mp.send(transformMessage(msg, cmdLine.getOptionValue(CMD_TRANSFORM_SCRIPT)));
 		} else {
 			mp.send(msg);
@@ -329,8 +324,8 @@ public class A {
 
 	}
 
-	protected void connect(String url, String user, String password,
-			Protocol protocol, String jndi, String clientid, boolean noTransactionSupport) throws Exception {
+	protected void connect(String url, String user, String password, Protocol protocol, String jndi, String clientid,
+			boolean noTransactionSupport) throws Exception {
 		if (StringUtils.isBlank(jndi)) {
 			switch (protocol) {
 			case AMQP:
@@ -348,13 +343,11 @@ public class A {
 			Properties properties = new Properties();
 			try {
 				// try classpath
-				InputStream propertiesStream = getClass().getResourceAsStream(
-						jndi);
+				InputStream propertiesStream = getClass().getResourceAsStream(jndi);
 				if (propertiesStream == null) {
 					// try absolut path
-					propertiesStream = FileUtils
-							.openInputStream(new File(jndi)); // will throw FNE
-																// if not found
+					propertiesStream = FileUtils.openInputStream(new File(jndi)); // will throw FNE
+																					// if not found
 				}
 				// Read the hello.properties JNDI propewsrties file and use
 				// contents to create the InitialContext.
@@ -366,8 +359,7 @@ public class A {
 				// "org.apache.qpid.amqp_1_0.jms.jndi.PropertiesFileInitialContextFactory"
 				// and setting the "java.naming.provider.url" system property as
 				// a URL to a properties file.
-				cf = (ConnectionFactory) context.lookup(cmdLine.getOptionValue(
-						CMD_JNDI_CF, "connectionFactory"));
+				cf = (ConnectionFactory)context.lookup(cmdLine.getOptionValue(CMD_JNDI_CF, "connectionFactory"));
 
 			} catch (Exception e) {
 				throw new RuntimeException(e);
@@ -379,7 +371,7 @@ public class A {
 		} else {
 			conn = cf.createConnection();
 		}
-		if(clientid != null) {
+		if (clientid != null) {
 			conn.setClientID(clientid);
 		}
 		sess = conn.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -393,20 +385,20 @@ public class A {
 
 	protected ConnectionFactory createAMQPCF(String uri) {
 		try {
-            return ConnectionFactoryImpl.createFromURL(uri);
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException(e.getMessage());
-        }
+			return ConnectionFactoryImpl.createFromURL(uri);
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException(e.getMessage());
+		}
 	}
 
-	protected void executeGet(final CommandLine cmdLine) throws JMSException,
-			IOException, ScriptException {
+	protected void executeGet(final CommandLine cmdLine) throws JMSException, IOException, ScriptException {
 		MessageConsumer mq = null;
 		String name = cmdLine.getArgs()[0];
 		if (cmdLine.hasOption(CMD_DURABLE)) { // Durable
 			Topic dest = createTopic(name);
 			if (cmdLine.hasOption(CMD_SELECTOR)) { // Selectors
-				mq = sess.createDurableSubscriber(dest, cmdLine.getOptionValue(CMD_DURABLE), cmdLine.getOptionValue(CMD_SELECTOR), true);
+				mq = sess.createDurableSubscriber(dest, cmdLine.getOptionValue(CMD_DURABLE),
+						cmdLine.getOptionValue(CMD_SELECTOR), true);
 			} else {
 				mq = sess.createDurableSubscriber(dest, cmdLine.getOptionValue(CMD_DURABLE));
 			}
@@ -418,10 +410,8 @@ public class A {
 				mq = sess.createConsumer(dest);
 			}
 		}
-		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT,
-				DEFAULT_COUNT_GET));
-		long wait = Long.parseLong(cmdLine.getOptionValue(CMD_WAIT,
-				DEFAULT_WAIT));
+		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT, DEFAULT_COUNT_GET));
+		long wait = Long.parseLong(cmdLine.getOptionValue(CMD_WAIT, DEFAULT_WAIT));
 		int i = 0;
 		while (i < count || count == 0) {
 			// some message system do not properly handle receive(0)
@@ -430,44 +420,44 @@ public class A {
 				output("No message received");
 				break;
 			} else {
-				if( cmdLine.hasOption(CMD_TRANSFORM_SCRIPT) ) {
-					msg = transformMessage(msg,cmdLine.getOptionValue(CMD_TRANSFORM_SCRIPT));
+				if (cmdLine.hasOption(CMD_TRANSFORM_SCRIPT)) {
+					msg = transformMessage(msg, cmdLine.getOptionValue(CMD_TRANSFORM_SCRIPT));
 				}
-				
+
 				outputMessage(msg, cmdLine.hasOption(CMD_JMS_HEADERS));
 				++i;
 			}
 		}
 	}
 
-	protected void executePut(final CommandLine cmdLine) throws IOException, JMSException, ScriptException{
+	protected void executePut(final CommandLine cmdLine) throws IOException, JMSException, ScriptException {
 		String data = cmdLine.getOptionValue(CMD_PUT);
-		putData(data, cmdLine);
-		if( data.startsWith("@")){
+		long wait = Long.parseLong(cmdLine.getOptionValue(CMD_WAIT, "0"));
+		putData(data, cmdLine, wait);
+		if (data.startsWith("@")) {
 			output("File: " + data.substring(1) + " sent");
 		} else {
 			output("Message sent");
 		}
 	}
-	
-	protected void executeReadFolder(final CommandLine cmdLine) throws IOException,
-	JMSException, ScriptException {
-		
+
+	protected void executeReadFolder(final CommandLine cmdLine) throws IOException, JMSException, ScriptException {
+
 		final long fileAgeMS = 1000;
 		String pathFilter = cmdLine.getOptionValue(CMD_READ_FOLDER);
-		if( pathFilter.isEmpty() ){
+		if (pathFilter.isEmpty()) {
 			output("Option " + CMD_READ_FOLDER + " requires a path and wildcard filename.");
 		}
-		
+
 		// expression will be like: /path/to/file/*.txt
 		// Last index of / will divide filter from path
 		File directory = Paths.get(".").toFile();
 		String filter = pathFilter;
 		int indexOfPathFilterSeparator = pathFilter.lastIndexOf('/');
-		if( indexOfPathFilterSeparator > 0){ // path + filename/filter
+		if (indexOfPathFilterSeparator > 0) { // path + filename/filter
 			String path = pathFilter.substring(0, indexOfPathFilterSeparator);
 			directory = new File(path);
-			if ( pathFilter.endsWith("/")) {
+			if (pathFilter.endsWith("/")) {
 				output("Option " + CMD_READ_FOLDER + " cannot end with /. Please pass a wildcard filename after path.");
 				return;
 			} else {
@@ -477,35 +467,36 @@ public class A {
 		AndFileFilter fileFilters = new AndFileFilter();
 		fileFilters.addFileFilter(new WildcardFileFilter(filter));
 		fileFilters.addFileFilter(new AgeFileFilter(System.currentTimeMillis() - fileAgeMS));
-		
+
 		long startTime = System.currentTimeMillis();
-		long waitTime = Long.parseLong(cmdLine.getOptionValue(CMD_WAIT,"0"));
-		long endTime = startTime + waitTime;	
+		long waitTime = Long.parseLong(cmdLine.getOptionValue(CMD_WAIT, "0"));
+		long endTime = startTime + waitTime;
 		do {
 			Collection<File> files = FileUtils.listFiles(directory, fileFilters, null); // no recursion
-			for(File file : files) {
-				putData("@"+file.getAbsolutePath(),cmdLine);
+			for (File file : files) {
+				putData("@" + file.getAbsolutePath(), cmdLine, 0L);
 				if (!file.delete()) {
 					output("Failed to delete file " + file.getName());
 				}
 				output("File " + file.getName() + " sent");
 			}
-			
+
 			try {
 				Thread.sleep(SLEEP_TIME_BETWEEN_FILE_CHECK);
 			} catch (InterruptedException e) {
 				output("Interrupted");
 				break;
 			}
-		} while( endTime > System.currentTimeMillis());
+		} while (endTime > System.currentTimeMillis());
 	}
-	
+
 	/**
-	 * Executes a dump restore. 
-	 * 
+	 * Executes a dump restore.
+	 *
 	 * Can be used with transactional on or off to achive a all or nothing-restore.
-	 * Very large restores may not be possible using transactions, but can be done by turning it off.
-	 * 
+	 * Very large restores may not be possible using transactions, but can be done
+	 * by turning it off.
+	 *
 	 * @param cmdLine
 	 * @throws JsonParseException
 	 * @throws JsonMappingException
@@ -513,46 +504,47 @@ public class A {
 	 * @throws ScriptException
 	 * @throws JMSException
 	 */
-	protected void executeReadDump(CommandLine cmdLine) throws JsonParseException, JsonMappingException, IOException, ScriptException, JMSException {
+	protected void executeReadDump(CommandLine cmdLine)
+			throws JsonParseException, JsonMappingException, IOException, ScriptException, JMSException {
 		File dumpFile;
-		try{
+		try {
 			dumpFile = new File(cmdLine.getOptionValue(CMD_RESTORE_DUMP));
 			if (!dumpFile.exists()) {
 				output("Dump file " + dumpFile.getAbsolutePath() + " does not exist");
 				return;
 			}
-		} catch ( Exception e) {
+		} catch (Exception e) {
 			output("Restore option requires a path to a JSON dump file.");
 			return;
 		}
-		
+
 		String dumpJson = FileUtils.readFileToString(dumpFile, StandardCharsets.UTF_8);
 		MessageDumpReader dumpReader = new MessageDumpReader(sess);
 		List<MessageDump> dumpMessages = dumpReader.toDumpMessages(dumpJson);
-		if( cmdLine.hasOption(CMD_TRANSFORM_SCRIPT)) {
+		if (cmdLine.hasOption(CMD_TRANSFORM_SCRIPT)) {
 			transformer.transformMessages(dumpMessages, cmdLine.getOptionValue(CMD_TRANSFORM_SCRIPT));
 		}
 		List<Message> messages = dumpReader.toMessages(dumpMessages);
 		Destination destination = createDestination(cmdLine.getArgs()[0]);
 		MessageProducer mp = tsess != null ? tsess.createProducer(destination) : sess.createProducer(destination);
-		
+
 		for (Message message : messages) {
-			mp.send(message, message.getJMSDeliveryMode(), message.getJMSPriority(), message.getJMSExpiration() );
+			mp.send(message, message.getJMSDeliveryMode(), message.getJMSPriority(), message.getJMSExpiration());
 		}
-		
-		if (tsess != null){
+
+		if (tsess != null) {
 			tsess.commit();
 		}
-		
+
 		mp.close();
 		output(messages.size() + " messages restored to " + cmdLine.getArgs()[0]);
 	}
 
 	protected void executeWriteDump(CommandLine cmdLine) throws JMSException, IOException, ScriptException {
-		
+
 		List<Message> msgs = consumeMessages(cmdLine);
-		
-		if( msgs.isEmpty()) {
+
+		if (msgs.isEmpty()) {
 			output("No messages found - no file written");
 		} else {
 			try {
@@ -560,19 +552,19 @@ public class A {
 				output("Writing " + msgs.size() + " messages to dump file " + filePath);
 				MessageDumpWriter mdw = new MessageDumpWriter();
 				List<MessageDump> dumpMessages = mdw.toDumpMessages(msgs);
-				if( cmdLine.hasOption(CMD_TRANSFORM_SCRIPT)) {
+				if (cmdLine.hasOption(CMD_TRANSFORM_SCRIPT)) {
 					transformer.transformMessages(dumpMessages, cmdLine.getOptionValue(CMD_TRANSFORM_SCRIPT));
 				}
 
 				final String jsonDump = mdw.toJson(dumpMessages);
 				FileUtils.writeStringToFile(new File(filePath), jsonDump, StandardCharsets.UTF_8);
 				output(msgs.size() + " messages written to " + filePath);
-				if (tsess != null){
+				if (tsess != null) {
 					tsess.commit();
 				}
-			} catch (Exception e){
+			} catch (Exception e) {
 				output("Failed to write all messages to dump file. Reason: ", e.getMessage());
-				if (tsess != null){
+				if (tsess != null) {
 					output("Rolling back JMS transaction");
 					tsess.rollback();
 				}
@@ -580,12 +572,11 @@ public class A {
 		}
 		// check if either target count was reached or queue is empty
 		// output a warning if we failed to reach the count while there are still messages on the queue
-		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT,
-				DEFAULT_COUNT_GET));
-		if (count > msgs.size()){
+		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT, DEFAULT_COUNT_GET));
+		if (count > msgs.size()) {
 			Queue queue = sess.createQueue(cmdLine.getArgs()[0]);
 			QueueBrowser browser = sess.createBrowser(queue);
-			if (browser.getEnumeration().hasMoreElements()){
+			if (browser.getEnumeration().hasMoreElements()) {
 				output("There are messages remaining on the queue");
 			}
 		}
@@ -608,10 +599,8 @@ public class A {
 		} else {
 			mq = session.createConsumer(dest);
 		}
-		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT,
-				DEFAULT_COUNT_GET));
-		long wait = Long.parseLong(cmdLine.getOptionValue(CMD_WAIT,
-				DEFAULT_WAIT));
+		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT, DEFAULT_COUNT_GET));
+		long wait = Long.parseLong(cmdLine.getOptionValue(CMD_WAIT, DEFAULT_WAIT));
 
 		List<Message> msgs = new ArrayList<>();
 		int i = 0;
@@ -628,17 +617,16 @@ public class A {
 		return msgs;
 	}
 
-	protected void putData(final String data, final CommandLine cmdLine) throws IOException,
-			JMSException, ScriptException {
+	protected void putData(final String data, final CommandLine cmdLine, long wait)
+			throws IOException, JMSException, ScriptException {
 		// Check if we have properties to put
 		Properties props = cmdLine.getOptionProperties(CMD_SET_HEADER);
 		Properties intProps = cmdLine.getOptionProperties(CMD_SET_INT_HEADER);
 		Properties longProps = cmdLine.getOptionProperties(CMD_SET_LONG_HEADER);
-        Properties booleanProps = cmdLine.getOptionProperties(CMD_SET_BOOLEAN_HEADER);
+		Properties booleanProps = cmdLine.getOptionProperties(CMD_SET_BOOLEAN_HEADER);
 
 		String type = cmdLine.getOptionValue(CMD_TYPE, DEFAULT_TYPE);
-		String encoding = cmdLine.getOptionValue(CMD_ENCODING, Charset
-				.defaultCharset().name());
+		String encoding = cmdLine.getOptionValue(CMD_ENCODING, Charset.defaultCharset().name());
 
 		Message outMsg = null;
 		// figure out input data
@@ -648,38 +636,44 @@ public class A {
 			outMsg = createMessageFromInput(data, type, encoding);
 		}
 
-		MessageProducer mp = sess.createProducer(createDestination(cmdLine
-				.getArgs()[0]));
+		MessageProducer mp = sess.createProducer(createDestination(cmdLine.getArgs()[0]));
 		if (cmdLine.hasOption("n")) {
 			mp.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
 		}
 
 		// enrich headers.
 		for (Entry<Object, Object> p : props.entrySet()) {
-			outMsg.setObjectProperty((String) p.getKey(), p.getValue());
+			outMsg.setObjectProperty((String)p.getKey(), p.getValue());
 		}
 
 		for (Entry<Object, Object> p : intProps.entrySet()) {
-			outMsg.setIntProperty((String) p.getKey(), Integer.parseInt((String)p.getValue()));
+			outMsg.setIntProperty((String)p.getKey(), Integer.parseInt((String)p.getValue()));
 		}
 
 		for (Entry<Object, Object> p : longProps.entrySet()) {
-			outMsg.setLongProperty((String) p.getKey(), Long.parseLong((String)p.getValue()));
+			outMsg.setLongProperty((String)p.getKey(), Long.parseLong((String)p.getValue()));
 		}
 
 		for (Entry<Object, Object> p : booleanProps.entrySet()) {
-			outMsg.setBooleanProperty((String) p.getKey(), Boolean.parseBoolean((String)p.getValue()));
+			outMsg.setBooleanProperty((String)p.getKey(), Boolean.parseBoolean((String)p.getValue()));
 		}
 
 		populateJmsProperties(outMsg, mp);
 
 		boolean useScript = cmdLine.hasOption(CMD_TRANSFORM_SCRIPT);
 		final String script = cmdLine.getOptionValue(CMD_TRANSFORM_SCRIPT);
-		
+
 		// send multiple messages?
 		if (cmdLine.hasOption("c")) {
 			int count = Integer.parseInt(cmdLine.getOptionValue("c"));
 			for (int i = 0; i < count; i++) {
+				if(i > 0 && wait != 0) {
+					try {
+						Thread.sleep(wait);
+					} catch (InterruptedException e) {
+						throw new InterruptedIOException(e.getMessage());
+					}
+				}
 				final Message finalMsg = useScript ? transformMessage(outMsg, script) : outMsg;
 				mp.send(finalMsg);
 			}
@@ -708,23 +702,19 @@ public class A {
 
 		if (cmdLine.hasOption(CMD_PRIORITY)) {
 			try {
-				int priority = Integer.parseInt(cmdLine
-						.getOptionValue(CMD_PRIORITY));
+				int priority = Integer.parseInt(cmdLine.getOptionValue(CMD_PRIORITY));
 				mp.setPriority(priority);
 			} catch (NumberFormatException nfe) {
-				throw new NumberFormatException(
-						"JMSPriority has to be an integer value");
+				throw new NumberFormatException("JMSPriority has to be an integer value");
 			}
 		}
 
 		if (cmdLine.hasOption(CMD_TTL)) {
 			try {
-				long ttl = Long.parseLong(cmdLine
-						.getOptionValue(CMD_TTL));
+				long ttl = Long.parseLong(cmdLine.getOptionValue(CMD_TTL));
 				mp.setTimeToLive(ttl);
 			} catch (NumberFormatException nfe) {
-				throw new NumberFormatException(
-						"JMSExpiry has to be a long value");
+				throw new NumberFormatException("JMSExpiry has to be a long value");
 			}
 		}
 
@@ -749,7 +739,8 @@ public class A {
 		}
 	}
 
-	protected Message transformMessage(final Message msg, final String script) throws JMSException, ScriptException, IOException{
+	protected Message transformMessage(final Message msg, final String script)
+			throws JMSException, ScriptException, IOException {
 		MessageDumpWriter mdw = new MessageDumpWriter();
 		MessageDumpReader mdr = new MessageDumpReader(sess);
 		return mdr.toJmsMessage(transformer.transformMessage(mdw.toDumpMessage(msg), script));
@@ -758,16 +749,17 @@ public class A {
 	protected Message createMessageFromInput(final String data, String type, String encoding)
 			throws JMSException, UnsupportedEncodingException, IOException, JsonParseException, JsonMappingException {
 		Message outMsg = null;
-		if( type.equals(TYPE_TEXT)) {
+		if (type.equals(TYPE_TEXT)) {
 			outMsg = sess.createTextMessage(data);
-		} else if ( type.equals(TYPE_BYTES)) {
+		} else if (type.equals(TYPE_BYTES)) {
 			BytesMessage bytesMsg = sess.createBytesMessage();
 			bytesMsg.writeBytes(data.getBytes(encoding));
 			outMsg = bytesMsg;
-		} else if( type.equals(TYPE_MAP)) {
+		} else if (type.equals(TYPE_MAP)) {
 			MapMessage mapMsg = sess.createMapMessage();
 			ObjectMapper mapper = new ObjectMapper();
-			Map<String, Object> msg = mapper.readValue(data, new TypeReference<Map<String, Object>>() { });
+			Map<String, Object> msg = mapper.readValue(data, new TypeReference<Map<String, Object>>() {
+			});
 			for (String key : msg.keySet()) {
 				mapMsg.setObject(key, msg.get(key));
 			}
@@ -780,21 +772,21 @@ public class A {
 
 	protected Message createMessageFromFile(final String data, String type, String encoding)
 			throws IOException, JMSException, UnsupportedEncodingException, JsonParseException, JsonMappingException {
-		
+
 		Message outMsg = null;
 		// Load file.
-		byte[] bytes = FileUtils.readFileToByteArray(new File(data
-				.substring(1)));
+		byte[] bytes = FileUtils.readFileToByteArray(new File(data.substring(1)));
 		if (type.equals(TYPE_TEXT)) {
 			outMsg = sess.createTextMessage(new String(bytes, encoding));
-		} else if(type.equals(TYPE_BYTES)) {
+		} else if (type.equals(TYPE_BYTES)) {
 			BytesMessage bytesMsg = sess.createBytesMessage();
 			bytesMsg.writeBytes(bytes);
 			outMsg = bytesMsg;
-		} else if(type.equals(TYPE_MAP)) {
+		} else if (type.equals(TYPE_MAP)) {
 			MapMessage mapMsg = sess.createMapMessage();
 			ObjectMapper mapper = new ObjectMapper();
-			Map<String, Object> msg = mapper.readValue(bytes, new TypeReference<Map<String, Object>>() { });
+			Map<String, Object> msg = mapper.readValue(bytes, new TypeReference<Map<String, Object>>() {
+			});
 			for (String key : msg.keySet()) {
 				mapMsg.setObject(key, msg.get(key));
 			}
@@ -806,8 +798,7 @@ public class A {
 	}
 
 	// Accepts a plain name, queue://<name>, topic://<name> etc.
-	protected Destination createDestination(final String name)
-			throws JMSException {
+	protected Destination createDestination(final String name) throws JMSException {
 		// support queue:// as well.
 		final String correctedName = name.replaceFirst("^queue://", "queue:").replaceFirst("^topic://", "topic:");
 		if (correctedName.toLowerCase().startsWith("queue:")) {
@@ -820,8 +811,7 @@ public class A {
 	}
 
 	// Accepts a plain name, topic://<name> etc.
-	protected Topic createTopic(final String name)
-			throws JMSException {
+	protected Topic createTopic(final String name) throws JMSException {
 		// support topic:// as well.
 		final String correctedName = name.replaceFirst("^topic://", "topic:");
 		if (correctedName.toLowerCase().startsWith("topic:")) {
@@ -831,8 +821,7 @@ public class A {
 		}
 	}
 
-	protected void executeBrowse(final CommandLine cmdLine)
-			throws JMSException, IOException {
+	protected void executeBrowse(final CommandLine cmdLine) throws JMSException, IOException {
 		final Queue q = sess.createQueue(cmdLine.getArgs()[0]);
 		QueueBrowser qb = null;
 		// Selector aware?
@@ -844,17 +833,16 @@ public class A {
 
 		@SuppressWarnings("rawtypes")
 		final Enumeration en = qb.getEnumeration();
-		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT,
-				DEFAULT_COUNT_ALL));
+		int count = Integer.parseInt(cmdLine.getOptionValue(CMD_COUNT, DEFAULT_COUNT_ALL));
 		int i = 0;
 		while (en.hasMoreElements() && (i < count || count == 0)) {
 			Object obj = en.nextElement();
-			Message msg = (Message) obj;
+			Message msg = (Message)obj;
 			if (cmdLine.hasOption(CMD_FIND)) {
 				String needle = cmdLine.getOptionValue(CMD_FIND);
 				// need to search for some payload value
 				if (msg instanceof TextMessage) {
-					String haystack = ((TextMessage) msg).getText();
+					String haystack = ((TextMessage)msg).getText();
 					if (haystack.contains(needle)) {
 						outputMessage(msg, cmdLine.hasOption(CMD_JMS_HEADERS));
 					}
@@ -867,23 +855,20 @@ public class A {
 	}
 
 	// ActiveMQ 5.x specific code. Not always works as expected.
-	protected void executeListQueues(final CommandLine cmdLine)
-			throws JMSException {
+	protected void executeListQueues(final CommandLine cmdLine) throws JMSException {
 		if (conn instanceof org.apache.activemq.ActiveMQConnection) {
-			final org.apache.activemq.ActiveMQConnection amqConn = (org.apache.activemq.ActiveMQConnection) conn;
+			final org.apache.activemq.ActiveMQConnection amqConn = (org.apache.activemq.ActiveMQConnection)conn;
 
 			// waiting to allow Destination source converge all advisory messages. Waiting time may be extended through wait option
 			long wait = Long.parseLong(cmdLine.getOptionValue(CMD_WAIT, DEFAULT_WAIT));
-			try{
+			try {
 				Thread.sleep(wait);
-			} catch(InterruptedException e){
+			} catch (InterruptedException e) {
 				return;
 			}
 
-			final Set<ActiveMQQueue> queues = amqConn.getDestinationSource()
-					.getQueues();
-			final Set<ActiveMQTopic> topics = amqConn.getDestinationSource()
-					.getTopics();
+			final Set<ActiveMQQueue> queues = amqConn.getDestinationSource().getQueues();
+			final Set<ActiveMQTopic> topics = amqConn.getDestinationSource().getTopics();
 
 			if (!queues.isEmpty()) {
 				output("Queues:");
@@ -901,14 +886,12 @@ public class A {
 			}
 
 		} else {
-			throw new RuntimeException(
-					"Only ActiveMQ 5.x connections support listing queues");
+			throw new RuntimeException("Only ActiveMQ 5.x connections support listing queues");
 		}
 	}
 
-	protected void outputMessage(Message msg, boolean printJMSHeaders)
-			throws JMSException, IOException {
-		
+	protected void outputMessage(Message msg, boolean printJMSHeaders) throws JMSException, IOException {
+
 		output("-----------------");
 		if (printJMSHeaders) {
 			outputHeaders(msg);
@@ -918,19 +901,17 @@ public class A {
 		FileOutputStream fos = null;
 		File file = null;
 		if (cmdLine.hasOption(CMD_OUTPUT)) {
-			file = getNextFilename(cmdLine.getOptionValue(CMD_OUTPUT, "amsg"),
-					0);
+			file = getNextFilename(cmdLine.getOptionValue(CMD_OUTPUT, "amsg"), 0);
 			if (file != null) {
 				fos = new FileOutputStream(file);
 			}
 		}
 
 		if (msg instanceof TextMessage) {
-			TextMessage txtMsg = (TextMessage) msg;
+			TextMessage txtMsg = (TextMessage)msg;
 			if (fos != null) {
-				fos.write(txtMsg.getText().getBytes(
-						cmdLine.getOptionValue(CMD_ENCODING, Charset
-								.defaultCharset().name())));
+				fos.write(txtMsg.getText()
+						.getBytes(cmdLine.getOptionValue(CMD_ENCODING, Charset.defaultCharset().name())));
 				fos.close();
 				output("Payload written to file ", file.getAbsolutePath());
 			} else {
@@ -938,8 +919,8 @@ public class A {
 				output(txtMsg.getText());
 			}
 		} else if (msg instanceof BytesMessage) {
-			BytesMessage bmsg = (BytesMessage) msg;
-			byte[] bytes = new byte[(int) bmsg.getBodyLength()];
+			BytesMessage bmsg = (BytesMessage)msg;
+			byte[] bytes = new byte[(int)bmsg.getBodyLength()];
 			bmsg.readBytes(bytes);
 			if (fos != null) {
 				fos.write(bytes);
@@ -950,7 +931,7 @@ public class A {
 				output(bytesToHex(bytes));
 			}
 		} else if (msg instanceof MapMessage) {
-			MapMessage mapMsg = (MapMessage) msg;
+			MapMessage mapMsg = (MapMessage)msg;
 			@SuppressWarnings("unchecked")
 			Enumeration<String> keys = mapMsg.getMapNames();
 			output("Payload:");
@@ -960,7 +941,7 @@ public class A {
 				output("  ", name, ": ", null != property ? property.toString() : "[null]");
 			}
 		} else if (msg instanceof ActiveMQMessage) { // Typically advisory messages of internal AMQ events.
-			ActiveMQMessage cmdMsg = (ActiveMQMessage) msg;
+			ActiveMQMessage cmdMsg = (ActiveMQMessage)msg;
 			displayAdvisoryMessage(cmdMsg);
 		} else {
 			output("Unsupported message type: ", msg.getClass().getName());
@@ -970,93 +951,102 @@ public class A {
 	protected void displayAdvisoryMessage(ActiveMQMessage cmdMsg) throws JMSException {
 		final String topic = cmdMsg.getJMSDestination().toString();
 		final String advisoryMsg = advisoryDataStructureToString(cmdMsg.getDataStructure());
-		final String advisoryType = cmdMsg.getDataStructure() != null ? "Type: " + dataStructureTypeToString(cmdMsg.getDataStructure().getDataStructureType()) : "";
+		final String advisoryType = cmdMsg.getDataStructure() != null
+				? "Type: " + dataStructureTypeToString(cmdMsg.getDataStructure().getDataStructureType())
+				: "";
 		output("Advisory on " + topic + advisoryType + (advisoryMsg != null ? " Info " + advisoryMsg : ""));
-		
+
 	}
-	
+
 	protected String advisoryDataStructureToString(final DataStructure dataStructure) throws JMSException {
-		
-		if( dataStructure != null) {
-			
-			switch( dataStructure.getDataStructureType()) {
-			
+
+		if (dataStructure != null) {
+
+			switch (dataStructure.getDataStructureType()) {
+
 			case CommandTypes.PRODUCER_INFO:
 				ProducerInfo pi = (ProducerInfo)dataStructure;
-				return "ProducerId: " + pi.getProducerId().toString() + " destination: " + pi.getDestination().toString();
-				
+				return "ProducerId: " + pi.getProducerId().toString() + " destination: "
+						+ pi.getDestination().toString();
+
 			case CommandTypes.CONSUMER_INFO:
 				ConsumerInfo ci = (ConsumerInfo)dataStructure;
-				return "ConsumerId: " + ci.getConsumerId().toString() + " destination: " + ci.getDestination().toString();
-				
+				return "ConsumerId: " + ci.getConsumerId().toString() + " destination: "
+						+ ci.getDestination().toString();
+
 			case CommandTypes.CONNECTION_INFO:
-				ConnectionInfo connInfo = (ConnectionInfo) dataStructure;
-				String connStr = connInfo.getUserName() != null ? connInfo.getUserName() + "@" + connInfo.getClientIp() : connInfo.getClientIp();
-				return "ConnectionId: " + connInfo.getConnectionId().toString() + " Connection from: " + connStr + " clientId: " +  connInfo.getClientId();
-	
+				ConnectionInfo connInfo = (ConnectionInfo)dataStructure;
+				String connStr = connInfo.getUserName() != null ? connInfo.getUserName() + "@" + connInfo.getClientIp()
+						: connInfo.getClientIp();
+				return "ConnectionId: " + connInfo.getConnectionId().toString() + " Connection from: " + connStr
+						+ " clientId: " + connInfo.getClientId();
+
 			case CommandTypes.REMOVE_INFO:
 				RemoveInfo removeInfo = (RemoveInfo)dataStructure;
 				return advisoryDataStructureToString(removeInfo.getObjectId());
-				
+
 			case CommandTypes.ACTIVEMQ_MESSAGE:
 				ActiveMQMessage messageInfo = (ActiveMQMessage)dataStructure;
 				return "messageId: " + messageInfo.getStringProperty("originalMessageId");
-			
+
 			case CommandTypes.DESTINATION_INFO:
 				DestinationInfo destInfo = (DestinationInfo)dataStructure;
-				return destInfo.getDestination().getQualifiedName() + (destInfo.getOperationType() == DestinationInfo.ADD_OPERATION_TYPE ? " added" : " removed");
-				
+				return destInfo.getDestination().getQualifiedName()
+						+ (destInfo.getOperationType() == DestinationInfo.ADD_OPERATION_TYPE ? " added" : " removed");
+
 			case CommandTypes.BROKER_INFO:
 				BrokerInfo brokerInfo = (BrokerInfo)dataStructure;
-				return "brokerId: " + brokerInfo.getBrokerId() + " brokerName: " 
-									+ brokerInfo.getBrokerName() + " brokerURL: " + brokerInfo.getBrokerURL();
-			
+				return "brokerId: " + brokerInfo.getBrokerId() + " brokerName: " + brokerInfo.getBrokerName()
+						+ " brokerURL: " + brokerInfo.getBrokerURL();
+
 			default:
 				return null;
 			}
 		} else {
 			return null;
 		}
-		
+
 	}
 
-	protected String dataStructureTypeToString(byte dataStructureType)  {
-		try{
-			for(Field field : CommandTypes.class.getFields()) {
+	protected String dataStructureTypeToString(byte dataStructureType) {
+		try {
+			for (Field field : CommandTypes.class.getFields()) {
 				String name = field.getName();
 				byte value = field.getByte(null);
-				if( dataStructureType == value ) {
+				if (dataStructureType == value) {
 					return name;
 				}
 			}
-		}catch(Exception e){
+		} catch (Exception e) {
 			return "unknown";
 		}
 		return "unknown";
 	}
 
 	protected void displayRemoveInfo(final RemoveInfo removeInfo, final String startAdvisoryMsg) {
-		switch(removeInfo.getObjectId().getDataStructureType()) {
+		switch (removeInfo.getObjectId().getDataStructureType()) {
 		case CommandTypes.PRODUCER_INFO:
 			ProducerInfo pi = (ProducerInfo)removeInfo.getObjectId();
-			
-			output("Removed producer " + startAdvisoryMsg + pi.getProducerId().getConnectionId() + " that produced to destination: " 
-												+ pi.getDestination().toString() );
+
+			output("Removed producer " + startAdvisoryMsg + pi.getProducerId().getConnectionId()
+					+ " that produced to destination: " + pi.getDestination().toString());
 			break;
 		case CommandTypes.CONSUMER_INFO:
 			ConsumerInfo ci = (ConsumerInfo)removeInfo.getObjectId();
-			output("Removed consumer " + startAdvisoryMsg + ci.getConsumerId().getConnectionId() + " that consumed destination: " 
-												+ ci.getDestination().toString());
+			output("Removed consumer " + startAdvisoryMsg + ci.getConsumerId().getConnectionId()
+					+ " that consumed destination: " + ci.getDestination().toString());
 			break;
-			
+
 		case CommandTypes.CONNECTION_INFO:
-			ConnectionInfo connInfo = (ConnectionInfo) removeInfo.getObjectId();
-			String connStr = connInfo.getUserName() != null ? connInfo.getUserName() + "@" + connInfo.getClientIp() : connInfo.getClientIp();
-			output("Removed connection " + startAdvisoryMsg + connInfo.getClientId() + " that connected from: " + connStr);
+			ConnectionInfo connInfo = (ConnectionInfo)removeInfo.getObjectId();
+			String connStr = connInfo.getUserName() != null ? connInfo.getUserName() + "@" + connInfo.getClientIp()
+					: connInfo.getClientIp();
+			output("Removed connection " + startAdvisoryMsg + connInfo.getClientId() + " that connected from: "
+					+ connStr);
 			break;
 		}
 	}
-	
+
 	protected File getNextFilename(String suggestedFilename, int i) {
 		String filename = suggestedFilename;
 		if (i > 0) {
@@ -1065,8 +1055,7 @@ public class A {
 				filename = suggestedFilename + "-" + i;
 			} else {
 				// take care of the extension.
-				filename = filename.substring(0, idx) + "-" + i
-						+ filename.substring(idx);
+				filename = filename.substring(0, idx) + "-" + i + filename.substring(idx);
 			}
 		}
 		File f = new File(filename);
@@ -1080,25 +1069,18 @@ public class A {
 	protected void outputHeaders(Message msg) {
 		output("Message Headers");
 		try {
-			String deliveryMode = msg.getJMSDeliveryMode() == DeliveryMode.PERSISTENT ? "persistent"
-					: "non-persistent";
+			String deliveryMode = msg.getJMSDeliveryMode() == DeliveryMode.PERSISTENT ? "persistent" : "non-persistent";
 			output("  JMSCorrelationID: " + msg.getJMSCorrelationID());
-			output("  JMSExpiration: "
-					+ timestampToString(msg.getJMSExpiration()));
+			output("  JMSExpiration: " + timestampToString(msg.getJMSExpiration()));
 			output("  JMSDeliveryMode: " + deliveryMode);
 			output("  JMSMessageID: " + msg.getJMSMessageID());
 			output("  JMSPriority: " + msg.getJMSPriority());
-			output("  JMSTimestamp: "
-					+ timestampToString(msg.getJMSTimestamp()));
+			output("  JMSTimestamp: " + timestampToString(msg.getJMSTimestamp()));
 			output("  JMSType: " + msg.getJMSType());
 			output("  JMSDestination: "
-					+ (msg.getJMSDestination() != null ? msg
-							.getJMSDestination().toString() : "Not set"));
-			output("  JMSRedelivered: "
-					+ Boolean.toString(msg.getJMSRedelivered()));
-			output("  JMSReplyTo: "
-					+ (msg.getJMSReplyTo() != null ? msg.getJMSReplyTo()
-							.toString() : "Not set"));
+					+ (msg.getJMSDestination() != null ? msg.getJMSDestination().toString() : "Not set"));
+			output("  JMSRedelivered: " + Boolean.toString(msg.getJMSRedelivered()));
+			output("  JMSReplyTo: " + (msg.getJMSReplyTo() != null ? msg.getJMSReplyTo().toString() : "Not set"));
 		} catch (JMSException e) {
 			// nothing to do here. just ignore.
 			logger.debug("Cannot print JMS headers. {}", e.getMessage());
@@ -1121,7 +1103,7 @@ public class A {
 			try {
 				Object property = msg.getObjectProperty(name);
 				output("  ", name, ": ", null != property ? property.toString() : "[null]");
-			} catch ( Exception e) {
+			} catch (Exception e) {
 				output("  ", name, ": Error loading property (" + e.getMessage() + ")");
 			}
 		}
@@ -1133,48 +1115,31 @@ public class A {
 
 	protected String bytesToHex(byte[] bytes) {
 		StringBuilder sb = new StringBuilder();
-	    for (byte b : bytes) {
-	        sb.append(String.format("%02X ", b));
-	    }
-	    return sb.toString();
+		for (byte b : bytes) {
+			sb.append(String.format("%02X ", b));
+		}
+		return sb.toString();
 	}
 
 	protected Options createOptions() {
 		Options opts = new Options();
-		opts.addOption(CMD_BROKER, "broker", true,
-				"URL to broker. defaults to: tcp://localhost:61616");
+		opts.addOption(CMD_BROKER, "broker", true, "URL to broker. defaults to: tcp://localhost:61616");
 		opts.addOption(CMD_GET, "get", false, "Get a message from destination");
 		opts.addOption(CMD_PUT, "put", true,
 				"Put a message. Specify data. if starts with @, a file is assumed and loaded");
-		opts.addOption(CMD_TYPE, "type", true,
-				"Message type to put, [bytes, text, map] - defaults to text");
-		opts.addOption(CMD_ENCODING, "encoding", true,
-				"Encoding of input file data. Default UTF-8");
-		opts.addOption(CMD_NON_PERSISTENT, "non-persistent", false,
-				"Set message to non persistent.");
-		opts.addOption(CMD_REPLY_TO, "reply-to", true,
-				"Set reply to destination, i.e. queue:reply");
-		opts.addOption(CMD_CORRELATION_ID, "correlation-id", true,
-				"Set CorrelationID");
-		opts.addOption(
-				CMD_OUTPUT,
-				"output",
-				true,
+		opts.addOption(CMD_TYPE, "type", true, "Message type to put, [bytes, text, map] - defaults to text");
+		opts.addOption(CMD_ENCODING, "encoding", true, "Encoding of input file data. Default UTF-8");
+		opts.addOption(CMD_NON_PERSISTENT, "non-persistent", false, "Set message to non persistent.");
+		opts.addOption(CMD_REPLY_TO, "reply-to", true, "Set reply to destination, i.e. queue:reply");
+		opts.addOption(CMD_CORRELATION_ID, "correlation-id", true, "Set CorrelationID");
+		opts.addOption(CMD_OUTPUT, "output", true,
 				"file to write payload to. If multiple messages, a -1.<ext> will be added to the file. BytesMessage will be written as-is, TextMessage will be written in UTF-8");
-		opts.addOption(
-				CMD_COUNT,
-				"count",
-				true,
+		opts.addOption(CMD_COUNT, "count", true,
 				"A number of messages to browse,get,move or put (put will put the same message <count> times). 0 means all messages.");
-		opts.addOption(CMD_JMS_HEADERS, "jms-headers", false,
-				"Print JMS headers");
-		opts.addOption(
-				CMD_COPY_QUEUE,
-				"copy-queue",
-				true,
+		opts.addOption(CMD_JMS_HEADERS, "jms-headers", false, "Print JMS headers");
+		opts.addOption(CMD_COPY_QUEUE, "copy-queue", true,
 				"Copy all messages from this to target. Limited by maxBrowsePageSize in broker settings (default 400).");
-		opts.addOption(CMD_MOVE_QUEUE, "move-queue", true,
-				"Move all messages from this to target");
+		opts.addOption(CMD_MOVE_QUEUE, "move-queue", true, "Move all messages from this to target");
 		opts.addOption(CMD_FIND, "find", true,
 				"Search for messages in queue with this value in payload. Use with browse. Limited by maxBrowsePageSize in broker settings (default 400).");
 		opts.addOption(CMD_SELECTOR, "selector", true,
@@ -1185,107 +1150,75 @@ public class A {
 		opts.addOption(CMD_PASS, "pass", true, "Password to connect to broker");
 		opts.addOption(CMD_PRIORITY, "priority", true, "sets JMSPriority");
 		opts.addOption(CMD_TTL, "ttl", true, "sets JMSExpiry");
-		opts.addOption(CMD_AMQP, "amqp", false,
-				"Set protocol to AMQP. Defaults to OpenWire");
-		opts.addOption(
-				CMD_JNDI,
-				"jndi",
-				true,
+		opts.addOption(CMD_AMQP, "amqp", false, "Set protocol to AMQP. Defaults to OpenWire");
+		opts.addOption(CMD_JNDI, "jndi", true,
 				"Connect via JNDI. Overrides -b and -A options. Specify context file on classpath");
-		opts.addOption(
-				CMD_JNDI_CF,
-				"jndi-cf-name",
-				true,
+		opts.addOption(CMD_JNDI_CF, "jndi-cf-name", true,
 				"Specify JNDI name for ConnectionFactory. Defaults to connectionFactory. Use with -J");
 		opts.addOption(CMD_ARTEMIS_CORE, "artemis-core", false,
 				"Set protocol to ActiveMQ Artemis Core. Defaults to OpenWire");
-		opts.addOption(CMD_OPENWIRE, "openwire", false,
-				"Set protocol to OpenWire. This is default protocol");
-		opts.addOption(CMD_LIST_QUEUES, "list-queues", false,
-				"List queues and topics on broker (OpenWire only)");
-		
-		opts.addOption(CMD_NO_TRANSACTION_SUPPORT,"no-transaction-support", false, 
+		opts.addOption(CMD_OPENWIRE, "openwire", false, "Set protocol to OpenWire. This is default protocol");
+		opts.addOption(CMD_LIST_QUEUES, "list-queues", false, "List queues and topics on broker (OpenWire only)");
+
+		opts.addOption(CMD_NO_TRANSACTION_SUPPORT, "no-transaction-support", false,
 				"Set to disable transactions if not supported by platform. "
-				+ "I.e. Azure Service Bus. When set to false, the Move option is NOT atomic.");	
-		
-		opts.addOption(CMD_READ_FOLDER, "read-folder", true, 
+						+ "I.e. Azure Service Bus. When set to false, the Move option is NOT atomic.");
+
+		opts.addOption(CMD_READ_FOLDER, "read-folder", true,
 				"Read files in folder and put to queue. Sent files are deleted! Specify path and a filename."
-						+" Wildcards are supported '*' and '?'. If no path is given, current directory is assumed.");
+						+ " Wildcards are supported '*' and '?'. If no path is given, current directory is assumed.");
 		opts.addOption(CMD_CLIENTID, "clientid", true, "Specify connection ClientID");
 
-		opts.addOption(CMD_DURABLE, "durable", true,
-				"the subscription is durable, specify subscription-name");
+		opts.addOption(CMD_DURABLE, "durable", true, "the subscription is durable, specify subscription-name");
 
-		Option property = Option.builder(CMD_SET_HEADER)
-				.argName("property=value")
-				.numberOfArgs(2)
-				.valueSeparator()
-				.desc("use value for given String property. Can be used several times.")
-				.build();
+		Option property = Option.builder(CMD_SET_HEADER).argName("property=value").numberOfArgs(2).valueSeparator()
+				.desc("use value for given String property. Can be used several times.").build();
 
 		opts.addOption(property);
 
-		Option longProperty = Option.builder(CMD_SET_LONG_HEADER)
-				.argName("property=value")
-				.numberOfArgs(2)
-				.valueSeparator()
-				.desc("use value for given Long property. Can be used several times.")
-				.build();
+		Option longProperty = Option.builder(CMD_SET_LONG_HEADER).argName("property=value").numberOfArgs(2)
+				.valueSeparator().desc("use value for given Long property. Can be used several times.").build();
 
 		opts.addOption(longProperty);
 
-		Option booleanProperty = Option.builder(CMD_SET_BOOLEAN_HEADER)
-				.argName("property=value")
-				.numberOfArgs(2)
-				.valueSeparator()
-				.desc("use value for given Boolean property. Can be used several times.")
-				.build();
+		Option booleanProperty = Option.builder(CMD_SET_BOOLEAN_HEADER).argName("property=value").numberOfArgs(2)
+				.valueSeparator().desc("use value for given Boolean property. Can be used several times.").build();
 
 		opts.addOption(booleanProperty);
 
-		Option intProperty = Option.builder(CMD_SET_INT_HEADER)
-				.argName("property=value")
-				.numberOfArgs(2)
-				.valueSeparator()
-				.desc("use value for given Integer property. Can be used several times.")
-				.build();
+		Option intProperty = Option.builder(CMD_SET_INT_HEADER).argName("property=value").numberOfArgs(2)
+				.valueSeparator().desc("use value for given Integer property. Can be used several times.").build();
 
 		opts.addOption(intProperty);
-		
+
 		opts.addOption(CMD_WRITE_DUMP, "write-dump", true, "Write a dump of messages to a file. "
-						+ "Will preserve metadata and type. Can  be used with transformation option.  Warning! Will consume queue!" );
-		
-		opts.addOption(CMD_RESTORE_DUMP, "restore-dump", true, "Restore a dump of messages in a file," + 
-						"created with -" + CMD_WRITE_DUMP + ". Can be used with transformation option.");
-		
+				+ "Will preserve metadata and type. Can  be used with transformation option.  Warning! Will consume queue!");
+
+		opts.addOption(CMD_RESTORE_DUMP, "restore-dump", true, "Restore a dump of messages in a file,"
+				+ "created with -" + CMD_WRITE_DUMP + ". Can be used with transformation option.");
+
 		opts.addOption(CMD_TRANSFORM_SCRIPT, "transform-script", true, "JavaScript code (or @path/to/file.js). "
-					+"Used to transform messages with the dump options. Access message in JavaScript by msg.JMSType = 'foobar';");
+				+ "Used to transform messages with the dump options. Access message in JavaScript by msg.JMSType = 'foobar';");
 
 		opts.addOption(CMD_VERSION, "version", false, "Show version of A");
 
-		opts.addOption(CMD_JMS_TYPE, "jms-type", true, "Sets JMSType header" );
+		opts.addOption(CMD_JMS_TYPE, "jms-type", true, "Sets JMSType header");
 
 		opts.addOption(CMD_BATCH_FILE, "batch-file", true,
-				"Line separated batch file. Used with -p to produce one message per line in file. " +
-				"Used together with Script where each batch line can be accessed with variable 'entry' ");
+				"Line separated batch file. Used with -p to produce one message per line in file. "
+						+ "Used together with Script where each batch line can be accessed with variable 'entry' ");
 
 		return opts;
 	}
 
 	protected String logoString() {
 		// ASCII Art from original by Nuno Jesus (https://github.com/nunojesus)
-	    return "              @@@         ............(\n" +
-		"            @@@@@@@     *...........(  \n" +
-		"          @@@@@@@@@@@ *...........(    \n" +
-		"        @@@@@@@@@@@@(/*.........(      \n" +
-		"/.....,/////#@@@@@%/////,.....(        \n" +
-		"   .,/////////#@(/////////,.(          \n" +
-		"  @@%/////////,.*/////////&@@          \n" +
-		"@@@@@@%/////,.....,/////&@@@@@@        \n" +
-		"@@@@@@@@@/..........,/&@@@@@@@@        \n" +
-		"@@@@@@@@@ /.........( @@@@@@@@@        \n" +
-		"@@@@@@@      .....(     @@@@@@@        \n" +
-		"@@@@@         /.(         @@@@@        \n" +
-		"@@@                         @@@        ";           
+		return "              @@@         ............(\n" + "            @@@@@@@     *...........(  \n"
+				+ "          @@@@@@@@@@@ *...........(    \n" + "        @@@@@@@@@@@@(/*.........(      \n"
+				+ "/.....,/////#@@@@@%/////,.....(        \n" + "   .,/////////#@(/////////,.(          \n"
+				+ "  @@%/////////,.*/////////&@@          \n" + "@@@@@@%/////,.....,/////&@@@@@@        \n"
+				+ "@@@@@@@@@/..........,/&@@@@@@@@        \n" + "@@@@@@@@@ /.........( @@@@@@@@@        \n"
+				+ "@@@@@@@      .....(     @@@@@@@        \n" + "@@@@@         /.(         @@@@@        \n"
+				+ "@@@                         @@@        ";
 	}
 }
