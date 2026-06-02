@@ -202,7 +202,7 @@
     <dependency>
       <groupId>org.apache.xbean</groupId>
       <artifactId>xbean-spring</artifactId>
-      <version>4.27</version>
+      <version>4.30</version>
       <scope>test</scope>
     </dependency>
 
