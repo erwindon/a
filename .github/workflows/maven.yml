@@ -26,3 +26,6 @@ jobs:
 
     - name: Build with Maven
       run: mvn -B package --file pom.xml
+
+    - name: Test startup
+      run: mvn -B exec:java --file pom.xml
