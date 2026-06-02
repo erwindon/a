@@ -26,10 +26,14 @@ updates:
   - dependency-name: 'org.apache.activemq:activemq-amqp'
     versions:
     - '>= 6'
-  # graalvm changed a lot in 24.x
+  # graalvm changed a lot (for us) in 23.x
+  # but the first few editions of 23.x still work
   - dependency-name: 'org.graalvm.js:js'
     versions:
-    - '>= 24'
+    - '>= 23.0.5'
+  - dependency-name: 'org.graalvm.js:js-scriptengine'
+    versions:
+    - '>= 23.0.5'
   # this fails from that version
   - dependency-name: 'com.fasterxml.jackson.core:jackson-databind'
     versions:

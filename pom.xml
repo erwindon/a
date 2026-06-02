@@ -5,7 +5,6 @@
   <version>1.6.1-SNAPSHOT</version>
 
   <properties>
-    <activemq.version>5.19.7</activemq.version>
     <spring.version>7.0.7</spring.version>
     <deb.lib.dir>/usr/share/${project.artifactId}/lib</deb.lib.dir>
     <deb.bin>/usr/bin/${project.artifactId}</deb.bin>
@@ -14,6 +13,12 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- see also .github/dependabot.yml -->
+    <activemq.version>5.19.7</activemq.version>
+
+    <!-- see also .github/dependabot.yml -->
+    <graalvm.version>23.0.4</graalvm.version>
   </properties>
 
   <dependencies>
@@ -87,17 +92,20 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
+      <!-- see also .github/dependabot.yml -->
       <version>2.21.4</version>
     </dependency>
+
+    <!-- js and js-scriptengine must be the same version -->
     <dependency>
       <groupId>org.graalvm.js</groupId>
       <artifactId>js</artifactId>
-      <version>23.0.12</version>
+      <version>${graalvm.version}</version>
     </dependency>
     <dependency>
       <groupId>org.graalvm.js</groupId>
       <artifactId>js-scriptengine</artifactId>
-      <version>25.0.3</version>
+      <version>${graalvm.version}</version>
     </dependency>
 
     <!-- Test dependencies -->

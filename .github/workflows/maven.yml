@@ -28,4 +28,8 @@ jobs:
       run: mvn -B package --file pom.xml
 
     - name: Test startup
-      run: mvn -B exec:java --file pom.xml
+      run: |
+        echo "=== mvn exec:java ==="
+        mvn -B exec:java --file pom.xml
+        echo "=== java -jar ==="
+        java -jar target/a-*-jar-with-dependencies.jar --version
