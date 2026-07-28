@@ -15,7 +15,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- see also .github/dependabot.yml -->
-    <activemq.version>5.19.7</activemq.version>
+    <activemq.version>5.19.9</activemq.version>
 
     <!-- see also .github/dependabot.yml -->
     <graalvm.version>23.0.4</graalvm.version>
