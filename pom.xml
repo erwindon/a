@@ -93,7 +93,7 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <!-- see also .github/dependabot.yml -->
-      <version>2.21.4</version>
+      <version>2.21.6</version>
     </dependency>
 
     <!-- js and js-scriptengine must be the same version -->
