@@ -46,6 +46,12 @@ public class MessageDumpTransformer {
 	public MessageDumpTransformer(){
 		mgr = new ScriptEngineManager();
 		engine = mgr.getEngineByName("js");
+		if (engine == null) {
+			engine = mgr.getEngineByName("nashorn");
+		}
+		if (engine == null) {
+			throw new RuntimeException("No JavaScript engine found. Tried: js, nashorn");
+		}
 		bindings = engine.getBindings(ScriptContext.ENGINE_SCOPE);
 		bindings.put("polyglot.js.nashorn-compat", true);
 		bindings.put("polyglot.js.allowHostAccess", true);

@@ -107,6 +107,11 @@
       <artifactId>js-scriptengine</artifactId>
       <version>${graalvm.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.openjdk.nashorn</groupId>
+      <artifactId>nashorn-core</artifactId>
+      <version>15.4</version>
+    </dependency>
 
     <!-- Test dependencies -->
     <dependency>
