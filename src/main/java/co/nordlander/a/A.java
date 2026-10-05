@@ -55,6 +55,7 @@ import org.apache.activemq.command.DestinationInfo;
 import org.apache.activemq.command.ProducerInfo;
 import org.apache.activemq.command.RemoveInfo;
 import org.apache.commons.cli.*;
+import org.apache.commons.cli.help.HelpFormatter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.AgeFileFilter;
 import org.apache.commons.io.filefilter.AndFileFilter;
@@ -159,9 +160,9 @@ public class A {
 		Options opts = createOptions();
 
 		if (args.length == 0) {
-			HelpFormatter helpFormatter = new HelpFormatter();
+			HelpFormatter helpFormatter = HelpFormatter.builder().get();
 			helpFormatter.printHelp(
-					"java -jar a-<version>-with-dependencies.jar", opts, true);
+					"java -jar a-<version>-with-dependencies.jar", null, opts, null, true);
 			System.exit(0);
 		}
 
