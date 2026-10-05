@@ -17,19 +17,23 @@
 
 package co.nordlander.a;
 
-import org.apache.activemq.artemis.api.core.QueueConfiguration;
-import org.apache.activemq.artemis.api.jms.ActiveMQJMSClient;
-import org.apache.activemq.artemis.core.server.embedded.EmbeddedActiveMQ;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import static co.nordlander.a.A.CMD_ARTEMIS_CORE;
+import static co.nordlander.a.A.CMD_BROKER;
+import static co.nordlander.a.A.CMD_COUNT;
+import static co.nordlander.a.A.CMD_GET;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.Arrays;
 
 import javax.jms.ConnectionFactory;
 import javax.jms.Message;
 import javax.jms.MessageProducer;
-import java.util.Arrays;
 
-import static co.nordlander.a.A.*;
-import static org.junit.Assert.assertEquals;
+import org.apache.activemq.artemis.api.core.QueueConfiguration;
+import org.apache.activemq.artemis.api.jms.ActiveMQJMSClient;
+import org.apache.activemq.artemis.core.server.embedded.EmbeddedActiveMQ;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 /**
  * Tests A with Artemis/HornetQ native protocol.
@@ -41,7 +45,7 @@ public class ArtemisJmsTest extends BaseTest{
    protected static final String AMQ_ARTEMIS_URL = "tcp://localhost:61616";
    protected static EmbeddedActiveMQ broker;
 
-   @BeforeClass
+   @BeforeAll
    public static void createArtemisBroker() throws Exception{
       System.out.println("Starting Artemis");
       broker = new EmbeddedActiveMQ();
@@ -91,7 +95,7 @@ public class ArtemisJmsTest extends BaseTest{
       assertEquals(expectedOut,out);
    }
 
-   @AfterClass
+   @AfterAll
    public static void tearDownBroker() throws Exception {
       if(broker != null){
          broker.stop();

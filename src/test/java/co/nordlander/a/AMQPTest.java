@@ -16,29 +16,28 @@
  */
 package co.nordlander.a;
 
-import org.apache.activemq.command.ActiveMQDestination;
-import org.apache.qpid.amqp_1_0.jms.impl.ConnectionFactoryImpl;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import static org.junit.Assert.*;
-import javax.jms.ConnectionFactory;
-import javax.jms.MessageConsumer;
-import javax.jms.TextMessage;
-import java.net.MalformedURLException;
 import static co.nordlander.a.A.CMD_AMQP;
 import static co.nordlander.a.A.CMD_BROKER;
 import static co.nordlander.a.A.CMD_PUT;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.net.MalformedURLException;
+
+import javax.jms.ConnectionFactory;
+import javax.jms.MessageConsumer;
+import javax.jms.TextMessage;
+
+import org.apache.activemq.command.ActiveMQDestination;
+import org.apache.qpid.amqp_1_0.jms.impl.ConnectionFactoryImpl;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ContextConfiguration;
 
 /**
  * Test class to test basic operations using AMQP transport.
  *
  * Created by Petter on 2015-01-30.
  */
-@RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {"classpath:activemq_amqp.xml"})
 @DirtiesContext(classMode= DirtiesContext.ClassMode.AFTER_CLASS)
 public class AMQPTest extends BaseTest {

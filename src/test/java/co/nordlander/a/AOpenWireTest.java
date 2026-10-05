@@ -20,8 +20,8 @@ package co.nordlander.a;
 import static co.nordlander.a.A.CMD_BROKER;
 import static co.nordlander.a.A.CMD_LIST_QUEUES;
 import static co.nordlander.a.A.CMD_PUT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import javax.jms.ConnectionFactory;
 import javax.jms.MessageConsumer;
@@ -30,19 +30,16 @@ import javax.jms.TextMessage;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQDestination;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * Tests A with OpenWire protocol. I.e. ActiveMQ 5 native protocol.
  * @author Petter Nordlander
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {"classpath:activemq.xml"})
 @DirtiesContext(classMode= DirtiesContext.ClassMode.AFTER_CLASS)
 public class AOpenWireTest extends BaseTest{
@@ -59,7 +56,7 @@ public class AOpenWireTest extends BaseTest{
 	}
 	
 	@Test
-	@Ignore // test seem fails under some conditions. The list command is not waterproof.
+	@Disabled // test seem fails under some conditions. The list command is not waterproof.
 	public void listQueuesTest() throws Exception {
 		
 		MessageProducer mp = session.createProducer(testQueue);
