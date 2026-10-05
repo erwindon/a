@@ -475,7 +475,7 @@ public class A {
 			}
 		}
 		AndFileFilter fileFilters = new AndFileFilter();
-		fileFilters.addFileFilter(new WildcardFileFilter(filter));
+		fileFilters.addFileFilter(WildcardFileFilter.builder().setWildcards(filter).get());
 		fileFilters.addFileFilter(new AgeFileFilter(System.currentTimeMillis() - fileAgeMS));
 		
 		long startTime = System.currentTimeMillis();
