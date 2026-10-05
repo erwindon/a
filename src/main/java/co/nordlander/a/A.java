@@ -1221,42 +1221,34 @@ public class A {
 		opts.addOption(CMD_DURABLE, "durable", true,
 				"the subscription is durable, specify subscription-name");
 
-		Option property = Option.builder(CMD_SET_HEADER)
+		opts.addOption(Option.builder(CMD_SET_HEADER)
 				.argName("property=value")
 				.numberOfArgs(2)
 				.valueSeparator()
 				.desc("use value for given String property. Can be used several times.")
-				.build();
+				.get());
 
-		opts.addOption(property);
-
-		Option longProperty = Option.builder(CMD_SET_LONG_HEADER)
+		opts.addOption(Option.builder(CMD_SET_LONG_HEADER)
 				.argName("property=value")
 				.numberOfArgs(2)
 				.valueSeparator()
 				.desc("use value for given Long property. Can be used several times.")
-				.build();
+				.get());
 
-		opts.addOption(longProperty);
-
-		Option booleanProperty = Option.builder(CMD_SET_BOOLEAN_HEADER)
+		opts.addOption(Option.builder(CMD_SET_BOOLEAN_HEADER)
 				.argName("property=value")
 				.numberOfArgs(2)
 				.valueSeparator()
 				.desc("use value for given Boolean property. Can be used several times.")
-				.build();
+				.get());
 
-		opts.addOption(booleanProperty);
-
-		Option intProperty = Option.builder(CMD_SET_INT_HEADER)
+		opts.addOption(Option.builder(CMD_SET_INT_HEADER)
 				.argName("property=value")
 				.numberOfArgs(2)
 				.valueSeparator()
 				.desc("use value for given Integer property. Can be used several times.")
-				.build();
+				.get());
 
-		opts.addOption(intProperty);
-		
 		opts.addOption(CMD_WRITE_DUMP, "write-dump", true, "Write a dump of messages to a file. "
 						+ "Will preserve metadata and type. Can  be used with transformation option.  Warning! Will consume queue!" );
 		
